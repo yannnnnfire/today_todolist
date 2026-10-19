@@ -1,0 +1,392 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Daily To-do List</title>
+<style>
+:root {
+  --bg:#f5f7fb; --card:#fff; --text:#253047; --muted:#748096;
+  --line:#e1e6ef; --accent:#5368d8; --danger:#cf4352;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:Arial,"Noto Sans TC",sans-serif;
+}
+button,input,select,textarea { font:inherit; }
+button { cursor:pointer; }
+.app { max-width:1500px; margin:auto; padding:26px; }
+header { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:22px; }
+h1 { margin:5px 0; font-size:30px; }
+h2 { font-size:17px; margin:0 0 14px; }
+p { color:var(--muted); }
+.actions { display:flex; gap:8px; flex-wrap:wrap; }
+.btn {
+  padding:10px 14px; border:1px solid var(--line); border-radius:9px;
+  background:white; color:var(--text); font-weight:600;
+}
+.btn.primary { background:var(--accent); color:white; border-color:var(--accent); }
+.btn:disabled { opacity:.45; cursor:not-allowed; }
+.notice {
+  background:#fff8e5; border:1px solid #efdfb0; padding:12px;
+  border-radius:10px; font-size:13px; margin-bottom:18px;
+}
+.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px; }
+.stat,.panel {
+  background:var(--card); border:1px solid var(--line);
+  border-radius:13px; padding:17px;
+}
+.stat-label { color:var(--muted); font-size:13px; }
+.stat-value { font-size:26px; font-weight:bold; margin-top:5px; }
+.panel { margin-bottom:18px; }
+.fields { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:10px; }
+.field { min-width:0; }
+label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+input,select,textarea {
+  width:100%; min-width:0; padding:10px; border:1px solid var(--line);
+  border-radius:8px; background:white; color:var(--text);
+}
+.extras { display:grid; grid-template-columns:1fr 1fr 2fr auto; gap:10px; margin-top:12px; align-items:end; }
+.toolbar { display:flex; gap:9px; flex-wrap:wrap; margin:20px 0 14px; }
+.toolbar input[type="search"] { flex:1; min-width:180px; }
+.toolbar select { width:auto; }
+.check { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); }
+.check input { width:auto; }
+.board { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:13px; align-items:start; }
+.column { background:#edf0f6; border:1px solid var(--line); border-radius:13px; padding:10px; min-height:230px; }
+.column.over { background:#e4eaff; border-color:#8796ef; }
+.col-head { display:flex; justify-content:space-between; align-items:center; padding:6px 4px 12px; font-weight:bold; }
+.dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:7px; }
+.urgent .dot { background:#d74b58; }
+.high .dot { background:#e7963c; }
+.medium .dot { background:#4c83d7; }
+.low .dot { background:#35a080; }
+.count { background:white; border-radius:20px; padding:3px 8px; font-size:12px; color:var(--muted); }
+.task-list { min-height:175px; display:flex; flex-direction:column; gap:8px; }
+.task { background:white; border:1px solid var(--line); border-radius:10px; padding:11px; cursor:grab; overflow-wrap:anywhere; }
+.task.dragging { opacity:.4; }
+.task.done .task-name { text-decoration:line-through; color:#929aaa; }
+.task.late { border-color:#e5a1a8; }
+.task-top { display:flex; align-items:flex-start; gap:8px; }
+.task-top input { width:16px; height:16px; margin-top:3px; flex-shrink:0; }
+.task-name { font-weight:bold; font-size:13px; line-height:1.5; flex:1; }
+.task-buttons { display:flex; gap:4px; }
+.task-buttons button { border:0; background:transparent; color:#7b8599; padding:1px 4px; }
+.tags { display:flex; flex-wrap:wrap; gap:5px; margin:8px 0 0 24px; }
+.tag { font-size:10px; padding:3px 6px; border-radius:5px; background:#f0f2f7; color:#647087; }
+.tag.work { background:#e8f1ff; color:#3262a5; }
+.tag.study { background:#f0eaff; color:#7952a6; }
+.tag.life { background:#e4f6ed; color:#23775a; }
+.tag.other { background:#fff0dc; color:#94601b; }
+.tag.late { background:#fff0f1; color:var(--danger); }
+.note { margin:8px 0 0 24px; color:var(--muted); font-size:12px; white-space:pre-wrap; }
+.empty { border:1px dashed #cbd2df; border-radius:9px; padding:22px 6px; text-align:center; color:#9099aa; font-size:12px; }
+.footer { margin-top:16px; color:var(--muted); font-size:12px; display:flex; justify-content:space-between; gap:10px; }
+.modal-bg {
+  position:fixed; inset:0; background:#10182b77; display:none;
+  align-items:center; justify-content:center; padding:18px; z-index:10;
+}
+.modal-bg.open { display:flex; }
+.modal { width:min(600px,100%); max-height:90vh; overflow:auto; background:white; border-radius:15px; padding:22px; }
+.modal-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.full { grid-column:1/-1; }
+.modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; flex-wrap:wrap; }
+#toast {
+  position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+  background:#253047; color:white; padding:11px 16px; border-radius:9px;
+  display:none; z-index:20; max-width:90%; font-size:13px;
+}
+#toast.show { display:block; }
+@media(max-width:1000px) {
+  .board { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .fields { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .extras { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:600px) {
+  .app { padding:14px; }
+  header { display:block; }
+  .actions { margin-top:14px; }
+  .stats { grid-template-columns:repeat(2,1fr); }
+  .board { grid-template-columns:1fr; }
+  .fields,.extras,.modal-grid { grid-template-columns:1fr; }
+  .full { grid-column:auto; }
+  .footer { flex-direction:column; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <div style="color:#5368d8;font-size:12px;font-weight:bold;letter-spacing:2px">DAILY FOCUS</div>
+      <h1>My Daily To-do List</h1>
+      <p id="todayLabel"></p>
+    </div>
+    <div class="actions">
+      <button class="btn" id="batchOpen">批次新增</button>
+      <button class="btn" id="importOpen">匯入 JSON</button>
+      <button class="btn primary" id="exportBtn">匯出 JSON</button>
+    </div>
+  </header>
+
+  <div class="notice">
+    <strong>單機模式：</strong>
+    網頁不會自動儲存。關閉或重新整理前，請先匯出 JSON 備份。
+  </div>
+
+  <section class="stats">
+    <div class="stat"><div class="stat-label">今日任務</div><div class="stat-value" id="total">0</div></div>
+    <div class="stat"><div class="stat-label">已完成</div><div class="stat-value" id="done">0</div></div>
+    <div class="stat"><div class="stat-label">尚未完成</div><div class="stat-value" id="remaining">0</div></div>
+    <div class="stat"><div class="stat-label">完成率</div><div class="stat-value" id="rate">0%</div></div>
+  </section>
+
+  <section class="panel">
+    <h2>新增待辦事項</h2>
+    <form id="addForm">
+      <div class="fields">
+        <div class="field"><label for="name">任務名稱 *</label><input id="name" required maxlength="240" placeholder="例如：完成課堂作業"></div>
+        <div class="field"><label for="category">分類</label><select id="category"><option value="work">工作</option><option value="study">學業</option><option value="life">生活</option><option value="other" selected>其他</option></select></div>
+        <div class="field"><label for="urgency">急迫性</label><select id="urgency"><option value="urgent">緊急</option><option value="high">高</option><option value="medium" selected>中</option><option value="low">低</option></select></div>
+        <div class="field"><label for="dueDate">截止日期</label><input id="dueDate" type="date"></div>
+      </div>
+      <div class="extras">
+        <div class="field"><label for="dueTime">截止時間</label><input id="dueTime" type="time"></div>
+        <div class="field"><label for="note">備註</label><input id="note" maxlength="1000" placeholder="選填"></div>
+        <div></div>
+        <button class="btn primary" type="submit">＋ 新增任務</button>
+      </div>
+    </form>
+  </section>
+
+  <div class="toolbar">
+    <input type="search" id="search" placeholder="搜尋任務或備註…">
+    <select id="filter"><option value="all">所有分類</option><option value="work">工作</option><option value="study">學業</option><option value="life">生活</option><option value="other">其他</option></select>
+    <label class="check"><input type="checkbox" id="unfinished">只看未完成</label>
+    <button class="btn" id="undo" disabled>復原刪除</button>
+  </div>
+
+  <main class="board" id="board">
+    <section class="column urgent" data-level="urgent"><div class="col-head"><span><i class="dot"></i>緊急</span><span class="count">0</span></div><div class="task-list"></div></section>
+    <section class="column high" data-level="high"><div class="col-head"><span><i class="dot"></i>高</span><span class="count">0</span></div><div class="task-list"></div></section>
+    <section class="column medium" data-level="medium"><div class="col-head"><span><i class="dot"></i>中</span><span class="count">0</span></div><div class="task-list"></div></section>
+    <section class="column low" data-level="low"><div class="col-head"><span><i class="dot"></i>低</span><span class="count">0</span></div><div class="task-list"></div></section>
+  </main>
+  <div class="footer"><span>拖曳任務可調整順序；跨欄拖曳會改變急迫性。</span><span id="shown">顯示 0 項</span></div>
+</div>
+
+<div class="modal-bg" id="editModal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <h2>編輯任務</h2>
+    <form id="editForm">
+      <input id="editId" type="hidden">
+      <div class="modal-grid">
+        <div class="field full"><label for="editName">任務名稱 *</label><input id="editName" required maxlength="240"></div>
+        <div class="field"><label for="editCategory">分類</label><select id="editCategory"><option value="work">工作</option><option value="study">學業</option><option value="life">生活</option><option value="other">其他</option></select></div>
+        <div class="field"><label for="editUrgency">急迫性</label><select id="editUrgency"><option value="urgent">緊急</option><option value="high">高</option><option value="medium">中</option><option value="low">低</option></select></div>
+        <div class="field"><label for="editDate">截止日期</label><input id="editDate" type="date"></div>
+        <div class="field"><label for="editTime">截止時間</label><input id="editTime" type="time"></div>
+        <div class="field full"><label for="editNote">備註</label><textarea id="editNote" rows="3"></textarea></div>
+      </div>
+      <div class="modal-actions"><button class="btn" type="button" id="editCancel">取消</button><button class="btn primary">儲存變更</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-bg" id="batchModal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <h2>批次新增任務</h2>
+    <p>每一行建立一項任務；本批次共用分類與急迫性。</p>
+    <form id="batchForm">
+      <div class="field"><label for="batchText">任務清單</label><textarea id="batchText" rows="7" required placeholder="完成報告&#10;回覆工作郵件&#10;採買日用品"></textarea></div>
+      <div class="modal-grid" style="margin-top:12px">
+        <div class="field"><label for="batchCategory">分類</label><select id="batchCategory"><option value="work">工作</option><option value="study">學業</option><option value="life">生活</option><option value="other">其他</option></select></div>
+        <div class="field"><label for="batchUrgency">急迫性</label><select id="batchUrgency"><option value="urgent">緊急</option><option value="high">高</option><option value="medium" selected>中</option><option value="low">低</option></select></div>
+      </div>
+      <div class="modal-actions"><button class="btn" type="button" id="batchCancel">取消</button><button class="btn primary">新增全部</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-bg" id="importModal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <h2>匯入 JSON</h2>
+    <p>選擇之前匯出的備份檔，再決定合併或取代目前清單。</p>
+    <div class="field"><label for="importFile">JSON 備份檔</label><input id="importFile" type="file" accept=".json,application/json"></div>
+    <p id="importInfo"></p>
+    <div class="modal-actions"><button class="btn" type="button" id="importCancel">取消</button><button class="btn" id="merge" disabled>合併匯入</button><button class="btn primary" id="replace" disabled>取代目前清單</button></div>
+  </div>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+(() => {
+  "use strict";
+  const levels=["urgent","high","medium","low"];
+  const levelNames={urgent:"緊急",high:"高",medium:"中",low:"低"};
+  const categoryNames={work:"工作",study:"學業",life:"生活",other:"其他"};
+  const $=id=>document.getElementById(id);
+  let tasks=[],deleted=null,dragId=null,importTasks=null,toastTimer;
+  const id=()=>Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,9);
+  const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const validLevel=x=>levels.includes(x)?x:"medium";
+  const validCategory=x=>Object.hasOwn(categoryNames,x)?x:"other";
+  const today=new Date();
+  const todayKey=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+  $("todayLabel").textContent=new Intl.DateTimeFormat("zh-TW",{year:"numeric",month:"long",day:"numeric",weekday:"long"}).format(today)+" · 今日任務清單";
+
+  function toast(message){
+    $("toast").textContent=message;$("toast").classList.add("show");
+    clearTimeout(toastTimer);toastTimer=setTimeout(()=>$("toast").classList.remove("show"),2500);
+  }
+  function overdue(t){
+    if(t.done||!t.date)return false;
+    return new Date(t.date+"T"+(t.time||"23:59")+":00").getTime()<Date.now();
+  }
+  function dueText(t){return t.date ? t.date.replaceAll("-","/")+(t.time?" "+t.time:"") : "";}
+  function addTask(data){
+    const name=String(data.name||"").trim();if(!name)return;
+    const peers=tasks.filter(t=>t.level===validLevel(data.level));
+    tasks.push({id:id(),name,category:validCategory(data.category),level:validLevel(data.level),
+      date:data.date||"",time:data.time||"",note:String(data.note||"").trim(),done:false,
+      order:peers.length?Math.max(...peers.map(t=>t.order||0))+1:1,createdAt:new Date().toISOString()});
+  }
+  function visibleTasks(){
+    const q=$("search").value.trim().toLowerCase(),cat=$("filter").value,unfinished=$("unfinished").checked;
+    return tasks.filter(t=>(!q||(t.name+" "+t.note).toLowerCase().includes(q))&&(cat==="all"||t.category===cat)&&(!unfinished||!t.done));
+  }
+  function normalize(){
+    levels.forEach(level=>tasks.filter(t=>t.level===level).sort((a,b)=>(a.order||0)-(b.order||0)).forEach((t,i)=>t.order=i+1));
+  }
+  function render(){
+    const visible=visibleTasks();
+    document.querySelectorAll(".column").forEach(col=>{
+      const level=col.dataset.level,all=tasks.filter(t=>t.level===level);
+      const shown=visible.filter(t=>t.level===level).sort((a,b)=>(a.order||0)-(b.order||0));
+      col.querySelector(".count").textContent=all.length;
+      const list=col.querySelector(".task-list");
+      list.innerHTML=shown.map(t=>`
+        <article class="task ${t.done?"done":""} ${overdue(t)?"late":""}" draggable="true" data-id="${esc(t.id)}">
+          <div class="task-top">
+            <input type="checkbox" data-action="toggle" data-id="${esc(t.id)}" aria-label="完成任務" ${t.done?"checked":""}>
+            <div class="task-name">${esc(t.name)}</div>
+            <div class="task-buttons"><button type="button" data-action="edit" data-id="${esc(t.id)}" title="編輯">✎</button><button type="button" data-action="delete" data-id="${esc(t.id)}" title="刪除">×</button></div>
+          </div>
+          <div class="tags"><span class="tag ${t.category}">${categoryNames[t.category]}</span>
+          ${t.date?`<span class="tag ${overdue(t)?"late":""}">${overdue(t)?"已逾期 · ":"截止 · "}${esc(dueText(t))}</span>`:""}</div>
+          ${t.note?`<div class="note">${esc(t.note)}</div>`:""}
+        </article>`).join("")||`<div class="empty">${tasks.some(t=>t.level===level)?"沒有符合條件的任務":"拖曳任務到這裡"}</div>`;
+    });
+    const done=tasks.filter(t=>t.done).length;
+    $("total").textContent=tasks.length;$("done").textContent=done;
+    $("remaining").textContent=tasks.length-done;
+    $("rate").textContent=(tasks.length?Math.round(done/tasks.length*100):0)+"%";
+    $("shown").textContent=`顯示 ${visible.length} / ${tasks.length} 項任務`;
+    $("undo").disabled=!deleted;
+  }
+  $("addForm").addEventListener("submit",e=>{
+    e.preventDefault();
+    addTask({name:$("name").value,category:$("category").value,level:$("urgency").value,date:$("dueDate").value,time:$("dueTime").value,note:$("note").value});
+    $("addForm").reset();$("category").value="other";$("urgency").value="medium";render();$("name").focus();toast("任務已新增");
+  });
+  $("board").addEventListener("click",e=>{
+    const b=e.target.closest("[data-action]");if(!b)return;
+    const t=tasks.find(x=>x.id===b.dataset.id);if(!t)return;
+    if(b.dataset.action==="toggle"){t.done=b.checked;normalize();render();}
+    if(b.dataset.action==="delete"){
+      deleted={task:{...t},index:tasks.indexOf(t)};tasks=tasks.filter(x=>x.id!==t.id);normalize();render();toast("已刪除，可復原");
+    }
+    if(b.dataset.action==="edit"){
+      $("editId").value=t.id;$("editName").value=t.name;$("editCategory").value=t.category;$("editUrgency").value=t.level;
+      $("editDate").value=t.date;$("editTime").value=t.time;$("editNote").value=t.note;
+      $("editModal").classList.add("open");
+    }
+  });
+  $("editForm").addEventListener("submit",e=>{
+    e.preventDefault();const t=tasks.find(x=>x.id===$("editId").value);if(!t)return;
+    const old=t.level;t.name=$("editName").value.trim();t.category=$("editCategory").value;t.level=$("editUrgency").value;
+    t.date=$("editDate").value;t.time=$("editTime").value;t.note=$("editNote").value.trim();
+    if(old!==t.level){const peers=tasks.filter(x=>x.level===t.level&&x.id!==t.id);t.order=peers.length?Math.max(...peers.map(x=>x.order||0))+1:1;}
+    normalize();$("editModal").classList.remove("open");render();toast("任務已更新");
+  });
+  $("editCancel").addEventListener("click",()=>$("editModal").classList.remove("open"));
+  $("undo").addEventListener("click",()=>{
+    if(!deleted)return;tasks.splice(Math.min(deleted.index,tasks.length),0,deleted.task);deleted=null;normalize();render();toast("已復原刪除");
+  });
+  ["search","filter","unfinished"].forEach(key=>$(key).addEventListener(key==="search"?"input":"change",render));
+
+  $("board").addEventListener("dragstart",e=>{
+    const card=e.target.closest(".task");if(!card)return;dragId=card.dataset.id;card.classList.add("dragging");
+    if(e.dataTransfer){e.dataTransfer.setData("text/plain",dragId);e.dataTransfer.effectAllowed="move";}
+  });
+  $("board").addEventListener("dragend",e=>{
+    const card=e.target.closest(".task");if(card)card.classList.remove("dragging");
+    document.querySelectorAll(".column").forEach(c=>c.classList.remove("over"));dragId=null;
+  });
+  $("board").addEventListener("dragover",e=>{
+    const col=e.target.closest(".column");if(!col)return;e.preventDefault();
+    document.querySelectorAll(".column").forEach(c=>c.classList.toggle("over",c===col));
+  });
+  $("board").addEventListener("drop",e=>{
+    const col=e.target.closest(".column");if(!col)return;e.preventDefault();
+    const task=tasks.find(t=>t.id===(dragId||(e.dataTransfer&&e.dataTransfer.getData("text/plain"))));if(!task)return;
+    const targetLevel=col.dataset.level,targetCard=e.target.closest(".task");
+    const siblings=tasks.filter(t=>t.level===targetLevel&&t.id!==task.id).sort((a,b)=>(a.order||0)-(b.order||0));
+    task.level=targetLevel;
+    let index=targetCard?siblings.findIndex(t=>t.id===targetCard.dataset.id):siblings.length;
+    if(index<0)index=siblings.length;
+    siblings.splice(index,0,task);siblings.forEach((t,i)=>t.order=i+1);normalize();render();
+  });
+
+  $("batchOpen").addEventListener("click",()=>$("batchModal").classList.add("open"));
+  $("batchCancel").addEventListener("click",()=>$("batchModal").classList.remove("open"));
+  $("batchForm").addEventListener("submit",e=>{
+    e.preventDefault();const lines=$("batchText").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+    if(!lines.length)return;lines.forEach(name=>addTask({name,category:$("batchCategory").value,level:$("batchUrgency").value}));
+    $("batchText").value="";$("batchModal").classList.remove("open");render();toast(`已新增 ${lines.length} 項任務`);
+  });
+
+  $("exportBtn").addEventListener("click",()=>{
+    const data={app:"My Daily To-do List",version:1,date:todayKey,exportedAt:new Date().toISOString(),tasks};
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json;charset=utf-8"});
+    const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`todo-${todayKey}.json`;
+    document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);toast("JSON 備份已匯出");
+  });
+  $("importOpen").addEventListener("click",()=>{
+    $("importFile").value="";$("importInfo").textContent="";importTasks=null;$("merge").disabled=true;$("replace").disabled=true;
+    $("importModal").classList.add("open");
+  });
+  $("importCancel").addEventListener("click",()=>$("importModal").classList.remove("open"));
+  $("importFile").addEventListener("change",async()=>{
+    const file=$("importFile").files[0];if(!file)return;
+    try{
+      const parsed=JSON.parse(await file.text()),arr=Array.isArray(parsed)?parsed:parsed.tasks;
+      if(!Array.isArray(arr))throw Error("JSON 中找不到 tasks 任務清單。");
+      importTasks=arr.map((t,i)=>{
+        if(!t||typeof t.name!=="string"||!t.name.trim())throw Error(`第 ${i+1} 項任務缺少名稱。`);
+        return {id:typeof t.id==="string"?t.id:id(),name:t.name.trim(),category:validCategory(t.category),level:validLevel(t.level),
+          date:typeof t.date==="string"?t.date:"",time:typeof t.time==="string"?t.time:"",note:typeof t.note==="string"?t.note:"",
+          done:Boolean(t.done),order:Number(t.order)||i+1,createdAt:t.createdAt||new Date().toISOString()};
+      });
+      $("importInfo").textContent=`讀取到 ${importTasks.length} 項任務；目前清單有 ${tasks.length} 項。合併會略過重複 ID；取代會覆蓋目前清單。`;
+      $("merge").disabled=false;$("replace").disabled=false;
+    }catch(err){importTasks=null;toast("匯入失敗："+err.message);}
+  });
+  $("merge").addEventListener("click",()=>{
+    if(!importTasks)return;const ids=new Set(tasks.map(t=>t.id));let added=0;
+    importTasks.forEach(t=>{if(!ids.has(t.id)){tasks.push({...t});ids.add(t.id);added++;}});
+    normalize();deleted=null;$("importModal").classList.remove("open");render();toast(`合併完成，新增 ${added} 項`);
+  });
+  $("replace").addEventListener("click",()=>{
+    if(!importTasks)return;
+    if(!confirm(`確定用匯入檔取代目前 ${tasks.length} 項任務？`))return;
+    tasks=importTasks.map(t=>({...t}));normalize();deleted=null;$("importModal").classList.remove("open");render();toast("已取代目前清單");
+  });
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")document.querySelectorAll(".modal-bg").forEach(m=>m.classList.remove("open"));});
+  render();
+})();
+</script>
+</body>
+</html>
